@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -20,7 +21,14 @@ func (app *Config) readJSON(w http.ResponseWriter, r *http.Request, data any) er
 
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(data)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	err = dec.Decode(&struct{}{})
 	if err != io.EOF {
+		log.Println(err)
 		return errors.New("body must have only a single JSON value")
 	}
 
