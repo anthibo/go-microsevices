@@ -4,6 +4,5 @@ RUN mkdir /app
 
 COPY brokerApp /app
 
-WORKDIR /app
 
-CMD [ "/brokerApp" ]
+CMD [ "/app/brokerApp" ]
