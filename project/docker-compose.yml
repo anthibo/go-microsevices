@@ -8,7 +8,7 @@ services:
       dockerfile: ./../broker-service/broker-service.dockerfile
     restart: always
     ports:
-      - 3001:3001
+      - 3001:80
     deploy:
       mode: replicated
       replicas: 1
@@ -27,6 +27,18 @@ services:
       - postgres
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=postgres sslmode=disable timezone=UTC connect_timeout=5"
+  
+  logger-service:
+    build:
+      context: ./../logger-service
+      dockerfile: ./../logger-service/logger-service.dockerfile
+    restart: always
+    ports:
+      - 3003:80
+    deploy:
+      mode: replicated
+      replicas: 1
+
   postgres:
     image: 'postgres:14.0'
     ports:
@@ -40,3 +52,12 @@ services:
       POSTGRES_DB: users
     volumes:
       - ./db-data/postgres/:/var/lib/postgresql/data/
+  
+  mongo:
+    image: 'mongo:4.2.16-bionic'
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: logs
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
