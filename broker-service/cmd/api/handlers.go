@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -12,6 +13,7 @@ type RequestPayload struct {
 	Action string      `json:"action"`
 	Auth   AuthPayload `json:"auth,omitempty"`
 	Log    LogPayload  `json:"log,omitempty"`
+	Mail   MailPayload `json:"mail,omitempty"`
 }
 
 type AuthPayload struct {
@@ -22,6 +24,13 @@ type AuthPayload struct {
 type LogPayload struct {
 	Name string `json:"name"`
 	Data string `json:"data"`
+}
+
+type MailPayload struct {
+	From    string `json:"from"`
+	To      string `json:"to"`
+	Subject string `json:"subject"`
+	Message string `json:"message"`
 }
 
 func (app *Config) Broker(w http.ResponseWriter, r *http.Request) {
@@ -47,6 +56,8 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 		app.authenticate(w, requestPayload.Auth)
 	case "log":
 		app.logItem(w, requestPayload.Log)
+	case "mail":
+		app.sendMail(w, requestPayload.Mail)
 	default:
 		app.errorJSON(w, errors.New("unknown actions"))
 	}
@@ -142,6 +153,45 @@ func (app *Config) authenticate(w http.ResponseWriter, a AuthPayload) {
 		Error:   false,
 		Message: "Authenticated!",
 		Data:    jsonFromService.Data,
+	}
+
+	app.writeJSON(w, http.StatusAccepted, payload)
+}
+
+func (app *Config) sendMail(w http.ResponseWriter, msg MailPayload) {
+	fmt.Println(msg)
+	jsonData, _ := json.Marshal(msg)
+
+	// call the mail service
+	mailServiceURL := "http://mail-service/send"
+
+	// post to mail service
+	request, err := http.NewRequest("POST", mailServiceURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	request.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}            // Create a client
+	response, err := client.Do(request) // Send request and get response back
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	defer response.Body.Close()
+
+	// make sure we get back the right status
+	if response.StatusCode != http.StatusAccepted {
+		log.Println()
+		app.errorJSON(w, errors.New(fmt.Sprintf("error calling mail service,  received status code: %s", response.StatusCode)))
+		return
+	}
+
+	// sent back json
+	payload := jsonResponse{
+		Error:   false,
+		Message: "Message sent to " + msg.To,
 	}
 
 	app.writeJSON(w, http.StatusAccepted, payload)
