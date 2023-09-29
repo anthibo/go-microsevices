@@ -2,3 +2,4 @@ db-data
 broker-service/brokerApp
 authentication-service/authApp
 logger-service/loggerServiceApp
+listener-service/listenerApp
