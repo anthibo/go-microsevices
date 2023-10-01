@@ -21,14 +21,14 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate the user against database
-	user, err := app.Models.GetByEmail(requestPayload.Email)
+	user, err := app.Repo.GetByEmail(requestPayload.Email)
 	if err != nil {
 		log.Println(err)
 		app.errorJSON(w, errors.New("Something wrong happened"), http.StatusInternalServerError)
 		return
 	}
 
-	valid, err := user.PasswordMatches(requestPayload.Password)
+	valid, err := app.Repo.PasswordMatches(requestPayload.Password, *user)
 	if err != nil || !valid {
 		app.errorJSON(w, errors.New("invalid credentials"), http.StatusUnauthorized)
 		return
@@ -67,8 +67,6 @@ func (app *Config) logRequest(name, data string) error {
 	}
 	request.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-
-	_, err = client.Do(request)
+	_, err = app.Client.Do(request)
 	return nil
 }
